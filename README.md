@@ -16,25 +16,52 @@ All under a single multi-face identity system with context-weighted global reput
 
 ---
 
-### Core Product Loop
-- Personalized multi-layer feed (local + skill matches + feedback requests + industry whispers + active events + accountability pings)
-- One-tap identity switching (Public / Local / Anonymous / Event / Professional)
-- Context-aware messaging
-- Intelligent layer-specific notifications
-- Reputation & tokens that travel across layers
+### Brand System
+- Primary: `#0c8ce9` (Brand Blue)
+- Accent: `#d946ef` (Magenta)
+- Full design tokens, gradients, glows, animations defined in `tailwind.config.ts`
+- Custom Logo component with animated variants
+- Button system with 8 variants + loading states + size scale
 
 ---
 
-### Tech Stack (planned)
-- **Frontend**: Next.js 15 + React + Tailwind + shadcn/ui
-- **Backend**: Next.js API routes / tRPC or separate FastAPI
-- **Database**: PostgreSQL + Prisma
-- **Auth**: Clerk / Auth.js with multi-face identity
-- **Realtime**: Partykit / Ably / Supabase Realtime
-- **Geo**: PostGIS or similar
-- **Deploy**: Vercel
+### Current Scaffold
+
+| Area | Status |
+|------|--------|
+| Design System | ✅ Brand colors, effects, animations |
+| Logo + Buttons | ✅ Production components |
+| Landing Page | ✅ Full hero + 7-layer showcase |
+| Database Schema | ✅ Complete multi-layer Prisma model |
+| Identity System | ✅ Multi-face (Public / Local / Anonymous / Professional / Event) |
+| Unit Tests | ✅ Button component tests (Vitest) |
+| Auth | ⏳ Next |
+| Feed Engine | ⏳ Next |
+| Messaging | ⏳ Next |
+| Realtime | ⏳ Next |
 
 ---
 
-### Status
-Repository initialized. Architecture and scaffolding coming next.
+### Tech Stack
+- **Frontend**: Next.js 15 + React 19 + Tailwind + Framer Motion + Radix
+- **Backend**: Next.js + Prisma + PostgreSQL
+- **Testing**: Vitest + Testing Library
+- **Deploy target**: Vercel
+
+---
+
+### Getting Started
+
+```bash
+npm install
+npm run dev
+```
+
+```bash
+npm test
+```
+
+---
+
+### Architecture Notes
+The platform is engineered as a single social graph with layered contexts rather than separate apps. Reputation and tokens are global but context-weighted. Identity faces allow users to operate in different modes without losing continuity.
