@@ -19,41 +19,46 @@ All under a single multi-face identity system with context-weighted global reput
 ### Brand System
 - Primary: `#0c8ce9` (Brand Blue)
 - Accent: `#d946ef` (Magenta)
-- Full design tokens, gradients, glows, animations defined in `tailwind.config.ts`
-- Custom Logo component with animated variants
-- Button system with 8 variants + loading states + size scale
+- Full design tokens, gradients, glows, shadows, animations
+- Custom Logo (icon / wordmark / full + animated)
+- Button system (8 variants + loading + size scale)
+- Card, Avatar, Badge components
 
 ---
 
-### Current Scaffold
+### What’s Built
 
 | Area | Status |
 |------|--------|
-| Design System | ✅ Brand colors, effects, animations |
-| Logo + Buttons | ✅ Production components |
-| Landing Page | ✅ Full hero + 7-layer showcase |
-| Database Schema | ✅ Complete multi-layer Prisma model |
-| Identity System | ✅ Multi-face (Public / Local / Anonymous / Professional / Event) |
-| Unit Tests | ✅ Button component tests (Vitest) |
-| Auth | ⏳ Next |
-| Feed Engine | ⏳ Next |
-| Messaging | ⏳ Next |
-| Realtime | ⏳ Next |
+| Design System | ✅ Complete |
+| Logo + Core UI | ✅ Production components |
+| Landing Page | ✅ Full marketing page |
+| App Shell + Sidebar | ✅ Layer navigation |
+| Multi-layer Home Feed | ✅ Mock feed with composer |
+| Identity Face Switcher | ✅ 5-face switcher component |
+| Database Schema | ✅ Full Prisma model (all 7 layers + messaging + tokens + reputation) |
+| Layer Pages | ✅ Skills, Local, Whisper (+ stubs for rest) |
+| API | ✅ Health check route |
+| Tests | ✅ Vitest + Button unit tests |
+| Auth | ⏳ Next (NextAuth / Clerk) |
+| Real data + Realtime | ⏳ Next |
 
 ---
 
 ### Tech Stack
-- **Frontend**: Next.js 15 + React 19 + Tailwind + Framer Motion + Radix
-- **Backend**: Next.js + Prisma + PostgreSQL
+- **Frontend**: Next.js 15 · React 19 · Tailwind · Framer Motion · Radix
+- **Backend**: Next.js API Routes · Prisma · PostgreSQL
 - **Testing**: Vitest + Testing Library
-- **Deploy target**: Vercel
+- **Deploy**: Vercel (ready)
 
 ---
 
-### Getting Started
+### Run Locally
 
 ```bash
 npm install
+cp .env.example .env
+# add DATABASE_URL
 npm run dev
 ```
 
@@ -61,7 +66,12 @@ npm run dev
 npm test
 ```
 
+App routes:
+- `/` — Marketing landing
+- `/app` — Multi-layer home feed
+- `/app/skills` · `/app/local` · `/app/whisper` · etc.
+
 ---
 
-### Architecture Notes
-The platform is engineered as a single social graph with layered contexts rather than separate apps. Reputation and tokens are global but context-weighted. Identity faces allow users to operate in different modes without losing continuity.
+### Architecture
+Single social graph with layered contexts. Reputation and tokens are global but context-weighted. Users switch identity faces without losing continuity across the graph.
