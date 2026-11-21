@@ -1,0 +1,382 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============ CORE IDENTITY ============
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Multi-face identity
+  faces         IdentityFace[]
+  profile       Profile?
+  reputation    Reputation?
+
+  // Content
+  posts         Post[]
+  comments      Comment[]
+  reactions     Reaction[]
+
+  // Social graph
+  followers     Follow[]  @relation("following")
+  following     Follow[]  @relation("followers")
+
+  // Messaging
+  conversations ConversationParticipant[]
+  messages      Message[]
+
+  // Layers
+  skillOffers   SkillOffer[]
+  skillRequests SkillRequest[]
+  squads        SquadMember[]
+  events        EventAttendee[]
+  mentorshipsAsMentor   MentorshipSession[] @relation("mentor")
+  mentorshipsAsMentee   MentorshipSession[] @relation("mentee")
+  whispers      Whisper[]
+  tokens        TokenLedger[]
+
+  notifications Notification[]
+
+  @@index([email])
+}
+
+model IdentityFace {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      FaceType
+  displayName String?
+  avatar    String?
+  bio       String?
+  isActive  Boolean  @default(false)
+  metadata  Json?    // e.g. company domain for professional, geo for local
+  createdAt DateTime @default(now())
+
+  @@unique([userId, type])
+  @@index([userId])
+}
+
+enum FaceType {
+  PUBLIC
+  LOCAL
+  ANONYMOUS
+  PROFESSIONAL
+  EVENT
+}
+
+model Profile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio         String?
+  location    String?
+  latitude    Float?
+  longitude   Float?
+  website     String?
+  skills      String[]
+  interests   String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Reputation {
+  id              String @id @default(cuid())
+  userId          String @unique
+  user            User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  globalScore     Float  @default(0)
+  skillScore      Float  @default(0)
+  feedbackScore   Float  @default(0)
+  localTrust      Float  @default(0)
+  industryAccuracy Float @default(0)
+  accountability  Float  @default(0)
+  mentorshipScore Float  @default(0)
+  updatedAt       DateTime @updatedAt
+}
+
+// ============ SOCIAL GRAPH ============
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  follower    User     @relation("followers", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+// ============ FEED / POSTS ============
+
+model Post {
+  id        String   @id @default(cuid())
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  faceType  FaceType @default(PUBLIC)
+  content   String
+  media     String[]
+  layer     PostLayer
+  metadata  Json?    // layer-specific data
+  latitude  Float?
+  longitude Float?
+  isAnonymous Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  comments  Comment[]
+  reactions Reaction[]
+
+  @@index([authorId])
+  @@index([layer, createdAt])
+  @@index([latitude, longitude])
+}
+
+enum PostLayer {
+  GENERAL
+  SKILL
+  LOCAL
+  FEEDBACK
+  ACCOUNTABILITY
+  WHISPER
+  EVENT
+  MENTORSHIP
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  content   String
+  parentId  String?
+  createdAt DateTime @default(now())
+
+  @@index([postId])
+}
+
+model Reaction {
+  id        String       @id @default(cuid())
+  postId    String
+  post      Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      ReactionType
+  createdAt DateTime     @default(now())
+
+  @@unique([postId, userId, type])
+}
+
+enum ReactionType {
+  LIKE
+  INSIGHTFUL
+  SUPPORT
+  CELEBRATE
+  CURIOUS
+}
+
+// ============ MESSAGING ============
+
+model Conversation {
+  id           String   @id @default(cuid())
+  type         ConversationType @default(DIRECT)
+  title        String?
+  layerContext PostLayer?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  participants ConversationParticipant[]
+  messages     Message[]
+}
+
+enum ConversationType {
+  DIRECT
+  GROUP
+  SQUAD
+  EVENT_ROOM
+  MENTORSHIP
+}
+
+model ConversationParticipant {
+  id             String   @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt       DateTime @default(now())
+  lastReadAt     DateTime?
+
+  @@unique([conversationId, userId])
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  content        String
+  media          String[]
+  createdAt      DateTime @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+// ============ LAYER 1: SKILL SWAP ============
+
+model SkillOffer {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill       String
+  description String?
+  tokensCost  Int      @default(1)
+  available   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@index([skill])
+}
+
+model SkillRequest {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill       String
+  description String?
+  tokensOffer Int      @default(1)
+  status      String   @default("open")
+  createdAt   DateTime @default(now())
+
+  @@index([skill, status])
+}
+
+// ============ LAYER 4: ACCOUNTABILITY ============
+
+model Squad {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  goalType    String
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  members     SquadMember[]
+}
+
+model SquadMember {
+  id        String   @id @default(cuid())
+  squadId   String
+  squad     Squad    @relation(fields: [squadId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   @default("member")
+  streak    Int      @default(0)
+  joinedAt  DateTime @default(now())
+
+  @@unique([squadId, userId])
+}
+
+// ============ LAYER 5: WHISPER ============
+
+model Whisper {
+  id            String   @id @default(cuid())
+  authorId      String
+  author        User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  content       String
+  companyDomain String?
+  industry      String?
+  roleLevel     String?
+  accuracyVotes Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  @@index([industry, createdAt])
+  @@index([companyDomain])
+}
+
+// ============ LAYER 6: EVENTS ============
+
+model Event {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  startsAt    DateTime
+  endsAt      DateTime
+  latitude    Float?
+  longitude   Float?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  attendees   EventAttendee[]
+}
+
+model EventAttendee {
+  id        String   @id @default(cuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status    String   @default("going")
+  joinedAt  DateTime @default(now())
+
+  @@unique([eventId, userId])
+}
+
+// ============ LAYER 7: MENTORSHIP / TOKENS ============
+
+model MentorshipSession {
+  id          String   @id @default(cuid())
+  mentorId    String
+  mentor      User     @relation("mentor", fields: [mentorId], references: [id])
+  menteeId    String
+  mentee      User     @relation("mentee", fields: [menteeId], references: [id])
+  topic       String
+  status      String   @default("requested")
+  tokens      Int      @default(1)
+  scheduledAt DateTime?
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([mentorId])
+  @@index([menteeId])
+}
+
+model TokenLedger {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount      Int
+  reason      String
+  referenceId String?
+  createdAt   DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+// ============ NOTIFICATIONS ============
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  title     String
+  body      String?
+  data      Json?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read, createdAt])
+}
